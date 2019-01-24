@@ -1,3 +1,3 @@
 # 我的 Blog
 
-## 请点击 issue 查看
+## 请点击 issues 查看
