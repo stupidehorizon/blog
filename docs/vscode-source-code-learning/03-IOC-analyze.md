@@ -144,22 +144,30 @@ await instantiationService.invokeFunction(async accessor => {
 			// check all dependencies for existence and if they need to be created first
 			// 这里有点难以理解，item.desc.ctor 指向我们创建服务的类
 			// _util.getServiceDependencies 做的就是从类的 $di$dependencies 属性上取出需要的依赖，但是我们并没有在任何地方去存这个值
+			// 这里就要提到上文我们说的 ts 的类参数装饰器，在编译为 js 时并加载代码时就会运行这个装饰器，
+			// 然后将需要依赖的服务存到类的 $di$dependencies 属性上
+			// 原理见下图
 			for (let dependency of _util.getServiceDependencies(item.desc.ctor)) {
 
+				// 找到依赖的服务实例或者装饰器实例
 				let instanceOrDesc = this._getServiceInstanceOrDescriptor(dependency.id);
 				if (!instanceOrDesc && !dependency.optional) {
 					console.warn(`[createInstance] ${id} depends on ${dependency.id} which is NOT registered.`);
 				}
 
 				if (instanceOrDesc instanceof SyncDescriptor) {
+					// 假设依赖的服务也是装饰器实例，就入栈
 					const d = { id: dependency.id, desc: instanceOrDesc, _trace: item._trace.branch(dependency.id, true) };
+					// 构建图的边，当前出度增加指向依赖的装饰器实例节点，装饰器实例节点入度增加指向当前节点
 					graph.insertEdge(item, d);
+					// 入栈，当栈里有元素时就一直处理，知道完整的依赖关系图构建完成
 					stack.push(d);
 				}
 			}
 		}
 
 		while (true) {
+			// 找到图里的根节点，即出度为 0 的节点
 			const roots = graph.roots();
 
 			// if there is no more roots but still
@@ -173,13 +181,21 @@ await instantiationService.invokeFunction(async accessor => {
 
 			for (const { data } of roots) {
 				// create instance and overwrite the service collections
+				// 因为这个节点不依赖其他未创建的服务，所以可以直接实例化
 				const instance = this._createServiceInstanceWithOwner(data.id, data.desc.ctor, data.desc.staticArguments, data.desc.supportsDelayedInstantiation, data._trace);
+				// 将装饰器实例替换为真正的服务实例
 				this._setServiceInstance(data.id, instance);
+				// 从图里删掉这个节点，并更新所有节点的出度和入度，删掉 key 为这个节点的记录
 				graph.removeNode(data);
 			}
 		}
 
 		return <T>this._getServiceInstanceOrDescriptor(id);
 	}
-
 ```
+
+到处为止，所有的服务就已经实例化了。如果我们要创建一个服务，但是它不依赖任何的服务，我们就可以在一开始直接实例化这个服务，并注册到 serviceCollection 中。但是如果一旦你的服务依赖了其他服务，我们就应该采用 vscode IOC 这种使用方法，通过在 constructor 中注入依赖的服务，我们就不用再自己手动的去实例化这些服务，并作为参数传进来。IOC 框架会自动帮我们实例化并注入到我们需要的地方，而且我们也不用担心依赖的服务所依赖的服务的问题。这就是 IOC 框架的价值。
+
+**附图[1]: Typescript 类参数装饰器**
+
+[ts-decorator](../../images/ts_decorator.jpg)
