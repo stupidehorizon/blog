@@ -146,7 +146,7 @@ await instantiationService.invokeFunction(async accessor => {
 			// _util.getServiceDependencies 做的就是从类的 $di$dependencies 属性上取出需要的依赖，但是我们并没有在任何地方去存这个值
 			// 这里就要提到上文我们说的 ts 的类参数装饰器，在编译为 js 时并加载代码时就会运行这个装饰器，
 			// 然后将需要依赖的服务存到类的 $di$dependencies 属性上
-			// 原理见下图
+			// 原理见附图[1]
 			for (let dependency of _util.getServiceDependencies(item.desc.ctor)) {
 
 				// 找到依赖的服务实例或者装饰器实例
@@ -198,4 +198,4 @@ await instantiationService.invokeFunction(async accessor => {
 
 **附图[1]: Typescript 类参数装饰器**
 
-[ts-decorator](../../images/ts_decorator.jpg)
+![ts-decorator](https://raw.githubusercontent.com/stupidehorizon/blog/master/images/ts_decorator.jpg)
