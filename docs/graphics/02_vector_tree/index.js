@@ -38,4 +38,4 @@ function drawBranch(context, v0, length, thickness, dir, bias) {
 }
 
 const v0 = new Vector2D(256, 0);
-drawBranch(ctx, v0, 50, 10, 1, 3);
+drawBranch(ctx, v0, 50, 10, Math.PI/2, 3);
