@@ -1,24 +1,9 @@
-export class Vector2D extends Array {
+export class Vector2D {
     constructor(x = 1, y = 0) {
-      super(x, y);
+      this.x = x;
+      this.y = y;
     }
-  
-    set x(v) {
-      this[0] = v;
-    }
-  
-    set y(v) {
-      this[1] = v;
-    }
-  
-    get x() {
-      return this[0];
-    }
-  
-    get y() {
-      return this[1];
-    }
-  
+
     get length() {
       return Math.hypot(this.x, this.y);
     }
@@ -38,6 +23,7 @@ export class Vector2D extends Array {
     }
   
     sub(v) {
+      debugger
       this.x -= v.x;
       this.y -= v.y;
       return this;
