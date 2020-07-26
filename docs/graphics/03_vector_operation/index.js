@@ -1,39 +1,6 @@
+import { Vector2D } from '../common/lib/vector2d';
 const $ = el => document.querySelector(el)
 const $$ = el => document.querySelectorAll(el)
-
-class Vector {
-  constructor (x, y) {
-    this.x = x
-    this.y = y
-  }
-  get length () {
-    return Math.hypot(this.x, this.y)
-  }
-  get dir () {
-    return Math.atan2(this.y, this.x)
-  }
-  scale (n) {
-    return new Vector(this.x * n, this.y * n)
-  }
-  normalise () {
-    return this.scale(1 / this.length)
-  }
-  reverse () {
-    return this.scale(-1)
-  }
-  add (v) {
-    return new Vector(this.x + v.x, this.y + v.y)
-  }
-  minus (v) {
-    return this.add(v.reverse())
-  }
-  dot (v) {
-    return this.x * v.x + this.y * v.y
-  }
-  cross (v) {
-    return this.x * v.y - this.y * v.x
-  }
-}
 
 class Canvas {
   constructor (canvas, { axis = true, size, dash = 8, color = 'black' } = {}) {
@@ -127,22 +94,23 @@ const canvas = new Canvas($('canvas'), { axis: false })
 dist(0, 100, -100, 0, 100, 0, true)
 
 function dist (x0, y0, x1, y1, x2, y2, seg = false) {
-  const P = new Vector(x0, y0)
-  const Q = new Vector(x1, y1)
-  const R = new Vector(x2, y2)
-  const QR = R.minus(Q)
-  const QP = P.minus(Q)
-  const RP = P.minus(R)
-//   const PN = new Vector(QR.y, -QR.x)
-//   const N = QR.length === 0 ? Q.scale(1) : new Vector(
+  const P = new Vector2D(x0, y0)
+  const Q = new Vector2D(x1, y1)
+  const R = new Vector2D(x2, y2)
+  const QR = R.copy().sub(Q)
+  const QP = P.copy().sub(Q)
+  const RP = P.copy().sub(R)
+  debugger
+//   const PN = new Vector2D(QR.y, -QR.x)
+//   const N = QR.length === 0 ? Q.scale(1) : new Vector2D(
 //     P.x * QR.x ** 2 + Q.x * QR.y ** 2 + QR.x * QR.y * (P.y - Q.y),
 //     P.y * QR.y ** 2 + Q.y * QR.x ** 2 + QR.x * QR.y * (P.x - Q.x)
 //   ).scale(1 / QR.length ** 2)
-  const N = new Vector(
+  const N = new Vector2D(
    ((QR.x * QP.x + QR.y * QP.y) / QR.length) * (R.x - Q.x) / QR.length + Q.x,
    ((QR.x * QP.x + QR.y * QP.y) / QR.length) * (R.y - Q.y) / QR.length + Q.y
   )
-  const PN = N.minus(P)
+  const PN = N.copy().sub(P)
 
   if (!seg) return QP.cross(QR) / QR.length
   canvas.point(P, 'P')
