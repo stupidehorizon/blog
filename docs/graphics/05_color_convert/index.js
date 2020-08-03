@@ -1,16 +1,39 @@
-
+import earcut from 'earcut';
 const canvas = document.querySelector('canvas');
 const gl = canvas.getContext('webgl');
 
 // 创建 webgl 程序
 // 顶点着色器
 const vertex = `
+  #define PI 3.1415926535897932384626433832795
   attribute vec2 position;
   varying vec3 color;
+
+  vec3 rgb2hsv(vec3 c){
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+  }
+
+  vec3 hsv2rgb(vec3 c){
+    vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0), 6.0)-3.0)-1.0, 0.0, 1.0);
+    rgb = rgb * rgb * (3.0 - 2.0 * rgb);
+    return c.z * mix(vec3(1.0), rgb, c.y);
+  }
+
   void main() {
     gl_PointSize = 1.0;
-    color = vec3(0.5 + position * 0.5, 0.0);
-    gl_Position = vec4(position * 0.5, 1.0, 1.0);
+    float hue = atan(position.y, position.x);
+    if (0.0 > hue) {
+      hue = PI * 2.0 + hue;
+    }
+    hue /= PI * 2.0;
+    vec3 hsv = vec3(hue, 1, 1);
+    color = hsv2rgb(hsv);
+    gl_Position = vec4(position, 1.0, 1.0);
   }
 `;
 
@@ -62,18 +85,26 @@ function createCircleVertex(x, y, r, n) {
       const ny = y + r * sin(angel);
       positionArray.push(nx, ny);
   }
-  return new Float32Array(positionArray);
+  return positionArray;
 }
 
 const points = createCircleVertex(0, 0, 1, 500);
+const cell = earcut(points);
 
-const bufferId = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-gl.bufferData(gl.ARRAY_BUFFER, points, gl.STATIC_DRAW);
+const position = new Float32Array(points);
+const cells = new Uint16Array(cell);
+
+const pointsBufferId = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, pointsBufferId);
+gl.bufferData(gl.ARRAY_BUFFER, position, gl.STATIC_DRAW);
 
 const vPosition = gl.getAttribLocation(program, 'position');
 gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
 gl.enableVertexAttribArray(vPosition);
 
+const cellsBufferId = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cellsBufferId);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cells, gl.STATIC_DRAW);
+
 gl.clear(gl.COLOR_BUFFER_BIT);
-gl.drawArrays(gl.TRIANGLE_FAN, 0, points.length / 2);
+gl.drawElements(gl.TRIANGLES, cell.length, gl.UNSIGNED_SHORT, 0);
